@@ -1,0 +1,9 @@
+[package]
+name = "duplicatefinder"
+version = "0.1.0"
+authors = ["EngelEatos <engel-eatos@web.de>"]
+
+[dependencies]
+blake2 = "0.7.0"
+filebuffer = "0.2.0"
+time = "*"
