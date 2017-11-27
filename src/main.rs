@@ -2,11 +2,10 @@ extern crate blake2;
 extern crate time;
 extern crate filebuffer;
 
-use std::io;
+use std::io::{self, Write};
 use std::collections::HashMap;
-use std::fs::{self, DirEntry};
-use std::path::Path;
-use std::path::PathBuf;
+use std::fs::{self, DirEntry, remove_file, OpenOptions};
+use std::path::{Path, PathBuf};
 use time::PreciseTime;
 
 use blake2::Blake2b;
@@ -83,30 +82,45 @@ fn find_duplicates(files: &HashMap<u64, Vec<PathBuf>>, duplicates: &mut HashMap<
 
 fn search(path: &Path) {
     let start = PreciseTime::now();
-    println!("[+] Find files in {:?}", path);    
+    println!("[+] find files in {:?}", path);    
     let mut dict = HashMap::new();
     match visit_dirs(path, &add_to_dict, &mut dict) {
         Ok(n) => n,
         Err(err) => println!("Error: {:?} - {:?}", &path, err),
     }
-    println!("\t[+] found {} different file sizes", dict.len());
     remove_uniques(&mut dict);
-    println!("\t[+] removing uniques - remaining {} file sizes", dict.len());
+    println!("\t[+] found {} different file sizes", dict.len());
+
+    println!("[+] hashing");
+
     let mut duplicates = HashMap::new();
     find_duplicates(&dict, &mut duplicates);
-    println!("[+] found {} duplicate hashes", duplicates.len());
     remove_uniques_(&mut duplicates);
-    println!("\t[+] removing uniques - remaining {} hashes", duplicates.len());
+    println!("[+] found {} duplicate hashes", duplicates.len());
     println!("\t[+] printing duplicates\n");
+
+    let path = Path::new("log.txt");
+    if path.exists() {
+        match remove_file(path) {
+            Ok(n) => n,
+            Err(err) => println!("Error: {:?}", err)
+        }
+    }
+
+    let mut file = OpenOptions::new().create(true).append(true).open(path).unwrap();
     for (hash, paths) in &duplicates {
         let strs: Vec<String> = paths.iter().map(|b| format!("\t{:?}\n", b)).collect();
         println!("{}\n{}", hash, strs.join(""));
+        if let Err(e) =  writeln!(file, "{}\n{}", hash, strs.join("")) {
+            println!("Error {:?}", e);
+        }
     }
+
     let end = PreciseTime::now();
     println!("it took {:?} seconds", start.to(end));
 }
 
 fn main() {
-    let path = Path::new("/home/rias/Downloads/");
+    let path = Path::new("/run/media/nyx/Daten/porn/");
     search(&path);    
 }
