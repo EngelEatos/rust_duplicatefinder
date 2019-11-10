@@ -89,6 +89,9 @@ fn search(path: &Path) {
         Err(err) => println!("Error: {:?} - {:?}", &path, err),
     }
     remove_uniques(&mut dict);
+    if dict.len() == 0 {
+        return;
+    }
     println!("\t[+] found {} different file sizes", dict.len());
 
     println!("[+] hashing");
